@@ -26,7 +26,7 @@ function App() {
   };
 
   return (
-    <Router>
+    <Router basename="/Mechanic-Shop-System">
       <div className="App">
         <Routes>
           <Route

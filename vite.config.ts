@@ -17,8 +17,8 @@ export default defineConfig({
         theme_color: '#475569',
         background_color: '#f8fafc',
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: '/Mechanic-Shop-System/',
+        start_url: '/Mechanic-Shop-System/',
         icons: [
           {
             src: 'icon-192.png',
