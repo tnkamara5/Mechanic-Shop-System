@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import vinDecoderService from '../services/vinDecoder';
+import { cleanMileage, cleanPhoneNumber, formatPhoneNumber, cleanYear } from '../utils/inputCleaning';
 import type { CustomerCheckInForm } from '../types/models';
 
 interface CheckInFormProps {
@@ -32,6 +33,13 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
 
   const [isDecodingVin, setIsDecodingVin] = useState(false);
   const [vinError, setVinError] = useState('');
+
+  // Display values for formatted inputs
+  const [displayValues, setDisplayValues] = useState({
+    phone: '',
+    mileage: '',
+    year: '',
+  });
 
   const handleVinChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const vin = vinDecoderService.cleanVin(e.target.value);
@@ -83,6 +91,35 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
     }));
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    const cleaned = cleanPhoneNumber(input);
+    const formatted = formatPhoneNumber(cleaned);
+
+    setDisplayValues(prev => ({ ...prev, phone: formatted }));
+    handleInputChange('customer', 'phone', cleaned);
+  };
+
+  const handleMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    setDisplayValues(prev => ({ ...prev, mileage: input }));
+
+    const cleaned = cleanMileage(input);
+    if (cleaned !== null) {
+      handleInputChange('service', 'mileage', cleaned);
+    }
+  };
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    setDisplayValues(prev => ({ ...prev, year: input }));
+
+    const cleaned = cleanYear(input);
+    if (cleaned !== null) {
+      handleInputChange('vehicle', 'year', cleaned);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -132,8 +169,8 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
                   id="phone"
                   required
                   className="input"
-                  value={formData.customer.phone}
-                  onChange={(e) => handleInputChange('customer', 'phone', e.target.value)}
+                  value={displayValues.phone}
+                  onChange={handlePhoneChange}
                   placeholder="(555) 123-4567"
                 />
               </div>
@@ -197,14 +234,12 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
                     Year
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     id="year"
                     className="input"
-                    value={formData.vehicle.year || ''}
-                    onChange={(e) => handleInputChange('vehicle', 'year', parseInt(e.target.value))}
+                    value={displayValues.year}
+                    onChange={handleYearChange}
                     placeholder="2020"
-                    min="1900"
-                    max={new Date().getFullYear() + 1}
                   />
                 </div>
 
@@ -281,12 +316,12 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
                   Current Mileage
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="mileage"
                   className="input"
-                  value={formData.service.mileage || ''}
-                  onChange={(e) => handleInputChange('service', 'mileage', parseInt(e.target.value))}
-                  placeholder="75000"
+                  value={displayValues.mileage}
+                  onChange={handleMileageChange}
+                  placeholder="75,000 or 75k"
                 />
               </div>
 

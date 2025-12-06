@@ -221,17 +221,26 @@ class BrowserDatabaseService {
       throw new Error('Check-in not found');
     }
 
-    // Create work order
-    const workOrder = this.createWorkOrder({
+    // Create work order and update check-in in the same transaction
+    const now = Date.now();
+    const workOrder: WorkOrder = {
+      id: uuidv4(),
       vehicle_id: checkIn.vehicle_id!,
       customer_id: checkIn.customer_id!,
       status: 'pending',
       mileage: checkIn.mileage,
       customer_concern: checkIn.customer_concern,
-    });
+      created_at: now,
+      updated_at: now,
+    };
+
+    // Add work order to data
+    data.work_orders.push(workOrder);
 
     // Update check-in status
     checkIn.status = 'work_order_created';
+
+    // Save everything at once
     this.saveStorageData(data);
 
     return workOrder;
