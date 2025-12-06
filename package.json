@@ -11,7 +11,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
-  "homepage": "https://nickkamara.github.io/auto-shop-excellence",
+  "homepage": "https://tnkamara5.github.io/Mechanic-Shop-System",
   "dependencies": {
     "@tailwindcss/forms": "^0.5.10",
     "@types/uuid": "^10.0.0",

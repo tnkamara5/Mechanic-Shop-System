@@ -8,8 +8,8 @@ Transform auto shops through technology that saves owners 6+ hours daily while i
 
 ## 🚀 Live Demo
 
-- **Customer Check-in:** [View Demo](https://nickkamara.github.io/auto-shop-excellence/)
-- **Owner Dashboard:** [View Demo](https://nickkamara.github.io/auto-shop-excellence/dashboard)
+- **Customer Check-in:** [View Demo](https://tnkamara5.github.io/Mechanic-Shop-System/)
+- **Owner Dashboard:** [View Demo](https://tnkamara5.github.io/Mechanic-Shop-System/dashboard)
 
 ## ✨ Current Features (MVP)
 
@@ -87,8 +87,8 @@ Transform auto shops through technology that saves owners 6+ hours daily while i
 
 ```bash
 # Clone the repository
-git clone https://github.com/nickkamara/auto-shop-excellence.git
-cd auto-shop-excellence
+git clone https://github.com/tnkamara5/Mechanic-Shop-System.git
+cd Mechanic-Shop-System
 
 # Install dependencies
 npm install
@@ -174,9 +174,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-**Nick Kamara** - [GitHub](https://github.com/nickkamara)
+**Nick Kamara** - [GitHub](https://github.com/tnkamara5)
 
-**Project Link:** [https://github.com/nickkamara/auto-shop-excellence](https://github.com/nickkamara/auto-shop-excellence)
+**Project Link:** [https://github.com/tnkamara5/Mechanic-Shop-System](https://github.com/tnkamara5/Mechanic-Shop-System)
 
 ---
 
