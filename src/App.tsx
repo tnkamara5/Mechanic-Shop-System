@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import CheckInForm from './components/CheckInForm';
 import OwnerDashboard from './components/OwnerDashboard';
+import TechDashboard from './components/TechDashboard';
+import Navigation from './components/Navigation';
 import BrowserDatabaseService from './services/browserDatabase';
 import type { CustomerCheckInForm } from './types/models';
 
@@ -27,7 +29,8 @@ function App() {
 
   return (
     <Router basename="/Mechanic-Shop-System">
-      <div className="App">
+      <div className="App min-h-screen bg-gray-50">
+        <Navigation />
         <Routes>
           <Route
             path="/"
@@ -40,6 +43,10 @@ function App() {
           <Route
             path="/dashboard"
             element={<OwnerDashboard />}
+          />
+          <Route
+            path="/tech"
+            element={<TechDashboard />}
           />
         </Routes>
       </div>

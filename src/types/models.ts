@@ -181,3 +181,79 @@ export interface EstimateApprovalForm {
   photos?: string[];
   notes?: string;
 }
+
+// Tech Interface Models
+export interface TechWorkOrder extends WorkOrder {
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  labor_estimate?: number;
+  parts_estimate?: number;
+  time_estimate?: number; // in minutes
+  diagnosis_photos?: string[];
+  diagnostic_notes?: string;
+  requires_approval?: boolean;
+}
+
+export interface EstimateRequest {
+  id: string;
+  work_order_id: string;
+  tech_id: string;
+  line_items: EstimateLineItem[];
+  labor_hours: number;
+  total_estimate: number;
+  photos?: string[];
+  notes?: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+  created_at: number;
+  updated_at: number;
+  submitted_at?: number;
+  responded_at?: number;
+}
+
+export interface EstimateLineItem {
+  id: string;
+  type: LineItemType;
+  description: string;
+  part_number?: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  supplier?: string;
+  notes?: string;
+}
+
+export interface TechPhoto {
+  id: string;
+  work_order_id: string;
+  estimate_request_id?: string;
+  url: string;
+  thumbnail_url?: string;
+  caption?: string;
+  category: 'diagnostic' | 'before' | 'progress' | 'after' | 'issue';
+  taken_at: number;
+  uploaded_at: number;
+}
+
+export interface TechProfile {
+  id: string;
+  name: string;
+  employee_id?: string;
+  certifications?: string[];
+  specialties?: string[];
+  hourly_rate?: number;
+  active: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TimeEntry {
+  id: string;
+  work_order_id: string;
+  tech_id: string;
+  start_time: number;
+  end_time?: number;
+  duration?: number; // in minutes
+  description?: string;
+  billable: boolean;
+  created_at: number;
+  updated_at: number;
+}
