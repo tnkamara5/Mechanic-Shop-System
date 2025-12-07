@@ -8,7 +8,7 @@ interface PhotoCaptureProps {
 }
 
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({
-  workOrderId,
+  workOrderId: _workOrderId,
   category = 'diagnostic',
   onPhotoTaken,
   className = '',

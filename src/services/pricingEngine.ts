@@ -1,4 +1,4 @@
-import type { CommonService, EstimateLineItem, LineItemType } from '../types/models';
+import type { CommonService, EstimateLineItem } from '../types/models';
 
 interface PartsPrice {
   part_number: string;
