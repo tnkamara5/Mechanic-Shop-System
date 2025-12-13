@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import schedulingService from '../services/schedulingService';
 import browserDatabase from '../services/browserDatabase';
-import type { CommonService, ServiceDuration } from '../types/models';
+import type { CommonService, ServiceDuration, TechProfile } from '../types/models';
 
 interface ServiceSelectorProps {
   selectedService?: string;
@@ -24,12 +24,19 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({
 }) => {
   const [services, setServices] = useState<CommonService[]>([]);
   const [serviceDurations, setServiceDurations] = useState<ServiceDuration[]>([]);
+  const [techs, setTechs] = useState<TechProfile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
     loadServices();
     loadServiceDurations();
+    loadTechs();
   }, []);
+
+  const loadTechs = () => {
+    const techProfiles = browserDatabase.getAllTechProfiles();
+    setTechs(techProfiles);
+  };
 
   const loadServices = () => {
     const availableServices = browserDatabase.getCommonServices();
@@ -95,6 +102,32 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({
     }
 
     return description;
+  };
+
+  const getAvailableTechs = (service: CommonService): TechProfile[] => {
+    const serviceName = service.name.toLowerCase();
+    const category = service.category || 'general';
+
+    return techs.filter(tech =>
+      tech.active && tech.specialties && (
+        tech.specialties.some(specialty =>
+          specialty.toLowerCase().includes(category) ||
+          specialty.toLowerCase().includes(serviceName.split(' ')[0]) ||
+          serviceName.includes(specialty.toLowerCase())
+        )
+      )
+    );
+  };
+
+  const getTechAvailabilityText = (service: CommonService): string => {
+    const availableTechs = getAvailableTechs(service);
+    const totalActiveTechs = techs.filter(tech => tech.active).length;
+
+    if (availableTechs.length === 0) {
+      return totalActiveTechs > 0 ? 'General assignment' : 'No techs available';
+    }
+
+    return `${availableTechs.length} specialist${availableTechs.length !== 1 ? 's' : ''} available`;
   };
 
   const handleServiceSelection = (service: CommonService) => {
@@ -193,12 +226,10 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({
                         ~{Math.round(duration / 15) * 15} min
                       </span>
                     </div>
-                    {config?.requires_specialist && (
-                      <div className="flex items-center space-x-1">
-                        <span>👨‍🔧</span>
-                        <span className="text-gray-600">Specialist</span>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-1">
+                      <span>👨‍🔧</span>
+                      <span className="text-gray-600">{getTechAvailabilityText(service)}</span>
+                    </div>
                   </div>
 
                   {service.labor_hours && (
@@ -215,6 +246,20 @@ const ServiceSelector: React.FC<ServiceSelectorProps> = ({
                     {config.buffer_minutes > 0 && ` (+${config.buffer_minutes} min cleanup)`}
                   </div>
                 )}
+
+                {/* Available Specialists */}
+                {(() => {
+                  const availableTechs = getAvailableTechs(service);
+                  return availableTechs.length > 0 && (
+                    <div className="mt-2 px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs">
+                      <span className="text-blue-700 font-medium">Specialists: </span>
+                      <span className="text-blue-600">
+                        {availableTechs.slice(0, 2).map(tech => tech.name.split(' ')[0]).join(', ')}
+                        {availableTechs.length > 2 && ` +${availableTechs.length - 2} more`}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Older Vehicle Notice */}
                 {vehicleYear && vehicleYear < 2010 && config && config.complexity_multiplier > 1.0 && (

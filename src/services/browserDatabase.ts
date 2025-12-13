@@ -7,6 +7,8 @@ import type {
   CheckIn,
   CommonService,
   CustomerCheckInForm,
+  TechProfile,
+  TimeEntry,
 } from '../types/models';
 
 // Simple browser-based database using localStorage
@@ -19,6 +21,8 @@ interface StorageData {
   line_items: LineItem[];
   check_ins: CheckIn[];
   common_services: CommonService[];
+  tech_profiles: TechProfile[];
+  time_entries: TimeEntry[];
 }
 
 class BrowserDatabaseService {
@@ -37,6 +41,42 @@ class BrowserDatabaseService {
       work_orders: [],
       line_items: [],
       check_ins: [],
+      tech_profiles: [
+        {
+          id: 'tech-001',
+          name: 'Mike Johnson',
+          employee_id: 'EMP001',
+          certifications: ['ASE A1', 'ASE A5', 'ASE A8'],
+          specialties: ['brake', 'suspension', 'general'],
+          hourly_rate: 45.00,
+          active: true,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+        {
+          id: 'tech-002',
+          name: 'Sarah Chen',
+          employee_id: 'EMP002',
+          certifications: ['ASE A6', 'ASE A7', 'ASE L1'],
+          specialties: ['electrical', 'engine', 'diagnostic'],
+          hourly_rate: 50.00,
+          active: true,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+        {
+          id: 'tech-003',
+          name: 'Carlos Rodriguez',
+          employee_id: 'EMP003',
+          certifications: ['ASE A2', 'ASE A3'],
+          specialties: ['transmission', 'engine', 'general'],
+          hourly_rate: 42.00,
+          active: true,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+      ],
+      time_entries: [],
       common_services: [
         {
           id: 'oil-change',
@@ -271,6 +311,338 @@ class BrowserDatabaseService {
   getVehicle(vehicleId: string): Vehicle | null {
     const data = this.getStorageData();
     return data.vehicles.find(v => v.id === vehicleId) || null;
+  }
+
+  // Tech Profile operations
+  createTechProfile(techData: Omit<TechProfile, 'id' | 'created_at' | 'updated_at'>): TechProfile {
+    const data = this.getStorageData();
+    const now = Date.now();
+
+    const tech: TechProfile = {
+      id: uuidv4(),
+      ...techData,
+      created_at: now,
+      updated_at: now,
+    };
+
+    data.tech_profiles.push(tech);
+    this.saveStorageData(data);
+    return tech;
+  }
+
+  updateTechProfile(techId: string, updates: Partial<TechProfile>): TechProfile | null {
+    const data = this.getStorageData();
+    const techIndex = data.tech_profiles.findIndex(t => t.id === techId);
+
+    if (techIndex === -1) return null;
+
+    data.tech_profiles[techIndex] = {
+      ...data.tech_profiles[techIndex],
+      ...updates,
+      updated_at: Date.now(),
+    };
+
+    this.saveStorageData(data);
+    return data.tech_profiles[techIndex];
+  }
+
+  deleteTechProfile(techId: string): boolean {
+    const data = this.getStorageData();
+    const initialLength = data.tech_profiles.length;
+
+    data.tech_profiles = data.tech_profiles.filter(t => t.id !== techId);
+
+    if (data.tech_profiles.length < initialLength) {
+      this.saveStorageData(data);
+      return true;
+    }
+
+    return false;
+  }
+
+  getAllTechProfiles(): TechProfile[] {
+    const data = this.getStorageData();
+    return data.tech_profiles.filter(t => t.active).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  getTechProfile(techId: string): TechProfile | null {
+    const data = this.getStorageData();
+    return data.tech_profiles.find(t => t.id === techId) || null;
+  }
+
+  getTechsBySpecialty(specialty: string): TechProfile[] {
+    const data = this.getStorageData();
+    return data.tech_profiles.filter(t =>
+      t.active && t.specialties && t.specialties.includes(specialty)
+    ).sort((a, b) => (b.hourly_rate || 0) - (a.hourly_rate || 0)); // Sort by rate desc
+  }
+
+  // Work Order Assignment
+  assignTechToWorkOrder(workOrderId: string, techId: string): WorkOrder | null {
+    const data = this.getStorageData();
+    const workOrderIndex = data.work_orders.findIndex(wo => wo.id === workOrderId);
+
+    if (workOrderIndex === -1) return null;
+
+    // Verify tech exists
+    const tech = data.tech_profiles.find(t => t.id === techId);
+    if (!tech || !tech.active) return null;
+
+    data.work_orders[workOrderIndex] = {
+      ...data.work_orders[workOrderIndex],
+      assigned_tech: techId,
+      updated_at: Date.now(),
+    };
+
+    this.saveStorageData(data);
+    return data.work_orders[workOrderIndex];
+  }
+
+  unassignTechFromWorkOrder(workOrderId: string): WorkOrder | null {
+    const data = this.getStorageData();
+    const workOrderIndex = data.work_orders.findIndex(wo => wo.id === workOrderId);
+
+    if (workOrderIndex === -1) return null;
+
+    data.work_orders[workOrderIndex] = {
+      ...data.work_orders[workOrderIndex],
+      assigned_tech: undefined,
+      updated_at: Date.now(),
+    };
+
+    this.saveStorageData(data);
+    return data.work_orders[workOrderIndex];
+  }
+
+  getWorkOrdersForTech(techId: string, status?: string): WorkOrder[] {
+    const data = this.getStorageData();
+    return data.work_orders.filter(wo =>
+      wo.assigned_tech === techId &&
+      (!status || wo.status === status)
+    ).sort((a, b) => b.created_at - a.created_at);
+  }
+
+  getUnassignedWorkOrders(): WorkOrder[] {
+    const data = this.getStorageData();
+    return data.work_orders.filter(wo =>
+      !wo.assigned_tech &&
+      wo.status !== 'completed' &&
+      wo.status !== 'cancelled'
+    ).sort((a, b) => b.created_at - a.created_at);
+  }
+
+  // Time Entry operations
+  createTimeEntry(timeData: Omit<TimeEntry, 'id' | 'created_at' | 'updated_at'>): TimeEntry {
+    const data = this.getStorageData();
+    const now = Date.now();
+
+    const timeEntry: TimeEntry = {
+      id: uuidv4(),
+      ...timeData,
+      created_at: now,
+      updated_at: now,
+    };
+
+    data.time_entries.push(timeEntry);
+    this.saveStorageData(data);
+    return timeEntry;
+  }
+
+  updateTimeEntry(entryId: string, updates: Partial<TimeEntry>): TimeEntry | null {
+    const data = this.getStorageData();
+    const entryIndex = data.time_entries.findIndex(te => te.id === entryId);
+
+    if (entryIndex === -1) return null;
+
+    data.time_entries[entryIndex] = {
+      ...data.time_entries[entryIndex],
+      ...updates,
+      updated_at: Date.now(),
+    };
+
+    this.saveStorageData(data);
+    return data.time_entries[entryIndex];
+  }
+
+  getTimeEntriesForTech(techId: string, startDate?: number, endDate?: number): TimeEntry[] {
+    const data = this.getStorageData();
+    return data.time_entries.filter(te => {
+      if (te.tech_id !== techId) return false;
+      if (startDate && te.start_time < startDate) return false;
+      if (endDate && te.start_time > endDate) return false;
+      return true;
+    }).sort((a, b) => b.start_time - a.start_time);
+  }
+
+  getTimeEntriesForWorkOrder(workOrderId: string): TimeEntry[] {
+    const data = this.getStorageData();
+    return data.time_entries.filter(te => te.work_order_id === workOrderId)
+      .sort((a, b) => a.start_time - b.start_time);
+  }
+
+  // Tech capacity and availability
+  getTechWorkload(techId: string): {
+    activeJobs: number;
+    totalEstimatedHours: number;
+    todayHours: number;
+    weekHours: number;
+  } {
+    const data = this.getStorageData();
+    const activeJobs = data.work_orders.filter(wo =>
+      wo.assigned_tech === techId &&
+      (wo.status === 'pending' || wo.status === 'in_progress')
+    );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+
+    const todayEntries = data.time_entries.filter(te =>
+      te.tech_id === techId && te.start_time >= today.getTime()
+    );
+
+    const weekEntries = data.time_entries.filter(te =>
+      te.tech_id === techId && te.start_time >= weekStart.getTime()
+    );
+
+    const todayHours = todayEntries.reduce((sum, entry) =>
+      sum + ((entry.duration || 0) / 60), 0
+    );
+
+    const weekHours = weekEntries.reduce((sum, entry) =>
+      sum + ((entry.duration || 0) / 60), 0
+    );
+
+    return {
+      activeJobs: activeJobs.length,
+      totalEstimatedHours: activeJobs.length * 2, // Simple estimate
+      todayHours,
+      weekHours,
+    };
+  }
+
+  // Smart assignment suggestions
+  suggestTechForWorkOrder(workOrderId: string): TechProfile[] {
+    const data = this.getStorageData();
+    const workOrder = data.work_orders.find(wo => wo.id === workOrderId);
+
+    if (!workOrder) return [];
+
+    const allTechs = data.tech_profiles.filter(t => t.active);
+    if (allTechs.length === 0) return [];
+
+    // Score techs based on job requirements
+    const scoredTechs = allTechs.map(tech => {
+      let score = 0;
+      const workload = this.getTechWorkload(tech.id);
+
+      // Workload penalty/bonus
+      if (workload.activeJobs >= 4) score -= 50;
+      else if (workload.activeJobs >= 3) score -= 30;
+      else if (workload.activeJobs >= 2) score -= 15;
+      else if (workload.activeJobs === 0) score += 25;
+
+      // Experience bonus based on hourly rate
+      if (tech.hourly_rate) {
+        if (tech.hourly_rate >= 35) score += 15; // Senior tech
+        else if (tech.hourly_rate >= 25) score += 10; // Mid-level
+        else score += 5; // Junior
+      }
+
+      // Certification bonus
+      if (tech.certifications && tech.certifications.length > 0) {
+        score += tech.certifications.length * 5;
+      }
+
+      // Match specialties to job requirements
+      if (tech.specialties && tech.specialties.length > 0) {
+        const concern = workOrder.customer_concern?.toLowerCase() || '';
+        const services = workOrder.description?.toLowerCase() || '';
+        const jobText = `${concern} ${services}`.toLowerCase();
+
+        let specialtyMatch = false;
+        tech.specialties.forEach(specialty => {
+          const specialtyLower = specialty.toLowerCase();
+
+          // Direct matches
+          if (jobText.includes(specialtyLower)) {
+            score += 40;
+            specialtyMatch = true;
+          }
+
+          // Keyword-based matches
+          else if (this.matchesSpecialtyKeywords(specialtyLower, jobText)) {
+            score += 30;
+            specialtyMatch = true;
+          }
+
+          // Category matches
+          else if (this.matchesSpecialtyCategory(specialtyLower, jobText)) {
+            score += 20;
+            specialtyMatch = true;
+          }
+        });
+
+        // Penalty for no specialty match
+        if (!specialtyMatch) score -= 10;
+      }
+
+      // Vehicle age consideration
+      if (workOrder.vehicle_id) {
+        const vehicle = data.vehicles.find(v => v.id === workOrder.vehicle_id);
+        if (vehicle && vehicle.year < 2010) {
+          // Prefer experienced techs for older vehicles
+          if (tech.hourly_rate && tech.hourly_rate >= 30) score += 10;
+        }
+      }
+
+      // Priority job bonus
+      const isUrgent = this.isUrgentJob(workOrder);
+      if (isUrgent && tech.hourly_rate && tech.hourly_rate >= 30) {
+        score += 15; // Prefer experienced techs for urgent jobs
+      }
+
+      return { ...tech, score, workload };
+    }).sort((a, b) => b.score - a.score);
+
+    return scoredTechs.slice(0, 5);
+  }
+
+  private matchesSpecialtyKeywords(specialty: string, jobText: string): boolean {
+    const keywordMap: Record<string, string[]> = {
+      'brake': ['brake', 'stop', 'squeaking', 'grinding', 'pedal'],
+      'engine': ['engine', 'motor', 'performance', 'power', 'stall', 'rough idle'],
+      'electrical': ['electric', 'battery', 'alternator', 'starter', 'wiring', 'lights'],
+      'transmission': ['transmission', 'shift', 'gear', 'clutch', 'automatic'],
+      'suspension': ['suspension', 'shock', 'strut', 'bounce', 'ride', 'alignment'],
+      'hvac': ['heat', 'air conditioning', 'ac', 'climate', 'defrost', 'blower'],
+      'tire': ['tire', 'wheel', 'alignment', 'balance', 'rotation']
+    };
+
+    const keywords = keywordMap[specialty] || [];
+    return keywords.some(keyword => jobText.includes(keyword));
+  }
+
+  private matchesSpecialtyCategory(specialty: string, jobText: string): boolean {
+    // Broader category matches
+    const categoryMap: Record<string, string[]> = {
+      'engine': ['maintenance', 'service', 'tune-up', 'oil'],
+      'brake': ['safety', 'inspection'],
+      'electrical': ['diagnostic', 'check engine', 'warning light'],
+      'transmission': ['fluid', 'service'],
+      'hvac': ['comfort', 'cabin'],
+      'tire': ['safety', 'maintenance']
+    };
+
+    const categories = categoryMap[specialty] || [];
+    return categories.some(category => jobText.includes(category));
+  }
+
+  private isUrgentJob(workOrder: WorkOrder): boolean {
+    const concern = workOrder.customer_concern?.toLowerCase() || '';
+    const urgentKeywords = ['urgent', 'emergency', 'broke down', 'won\'t start', 'dangerous', 'unsafe'];
+    return urgentKeywords.some(keyword => concern.includes(keyword));
   }
 
   // Clear all data (for testing)

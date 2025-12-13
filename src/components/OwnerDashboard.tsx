@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import BrowserDatabaseService from '../services/browserDatabase';
 import OwnerSettings from './OwnerSettings';
-import type { CheckIn, WorkOrder, Customer, Vehicle } from '../types/models';
+import TechRoster from './TechRoster';
+import AssignmentBoard from './AssignmentBoard';
+import TechCapacity from './TechCapacity';
+import type { CheckIn, WorkOrder, Customer, Vehicle, TechProfile } from '../types/models';
 
 const OwnerDashboard: React.FC = () => {
   const [pendingCheckIns, setPendingCheckIns] = useState<CheckIn[]>([]);
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [customers, setCustomers] = useState<{ [id: string]: Customer }>({});
   const [vehicles, setVehicles] = useState<{ [id: string]: Vehicle }>({});
+  const [techs, setTechs] = useState<TechProfile[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showTechRoster, setShowTechRoster] = useState(false);
+  const [showAssignmentBoard, setShowAssignmentBoard] = useState(false);
+  const [showTechCapacity, setShowTechCapacity] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -17,9 +24,11 @@ const OwnerDashboard: React.FC = () => {
   const loadData = () => {
     const checkIns = BrowserDatabaseService.getPendingCheckIns();
     const orders = BrowserDatabaseService.getWorkOrders();
+    const techProfiles = BrowserDatabaseService.getAllTechProfiles();
 
     setPendingCheckIns(checkIns);
     setWorkOrders(orders);
+    setTechs(techProfiles);
 
     // Load customer and vehicle data
     const customerMap: { [id: string]: Customer } = {};
@@ -70,6 +79,31 @@ const OwnerDashboard: React.FC = () => {
               <p className="text-shop-600 mt-2">Manage customer check-ins and work orders</p>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Tech Management Buttons */}
+              <button
+                onClick={() => setShowTechRoster(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <span className="text-lg">👥</span>
+                <span className="font-medium">Tech Roster</span>
+              </button>
+
+              <button
+                onClick={() => setShowAssignmentBoard(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <span className="text-lg">📋</span>
+                <span className="font-medium">Job Assignment</span>
+              </button>
+
+              <button
+                onClick={() => setShowTechCapacity(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                <span className="text-lg">📊</span>
+                <span className="font-medium">Tech Capacity</span>
+              </button>
+
               <button
                 onClick={() => setShowSettings(true)}
                 className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -212,7 +246,12 @@ const OwnerDashboard: React.FC = () => {
 
                       <div className="text-sm text-shop-600 mb-2">
                         <p>🚗 {vehicle ? formatVehicle(vehicle) : 'Unknown Vehicle'}</p>
-                        {workOrder.assigned_tech && <p>👨‍🔧 {workOrder.assigned_tech}</p>}
+                        {workOrder.assigned_tech && (
+                          <p>👨‍🔧 {
+                            techs.find(tech => tech.id === workOrder.assigned_tech)?.name ||
+                            workOrder.assigned_tech
+                          }</p>
+                        )}
                         {workOrder.mileage && <p>📏 {workOrder.mileage.toLocaleString()} miles</p>}
                       </div>
 
@@ -285,21 +324,39 @@ const OwnerDashboard: React.FC = () => {
 
           <div className="bg-white p-6 rounded-lg shadow border border-shop-200">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-shop-100">
-                <span className="text-2xl">👥</span>
+              <div className="p-3 rounded-full bg-purple-100">
+                <span className="text-2xl">👨‍🔧</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-shop-600">Total Customers</p>
-                <p className="text-2xl font-bold text-shop-900">{Object.keys(customers).length}</p>
+                <p className="text-sm font-medium text-shop-600">Active Technicians</p>
+                <p className="text-2xl font-bold text-shop-900">{techs.filter(tech => tech.active).length}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Settings Modal */}
+      {/* Modals */}
       {showSettings && (
         <OwnerSettings onClose={() => setShowSettings(false)} />
+      )}
+
+      {showTechRoster && (
+        <TechRoster onClose={() => {
+          setShowTechRoster(false);
+          loadData(); // Refresh data when tech roster is closed
+        }} />
+      )}
+
+      {showAssignmentBoard && (
+        <AssignmentBoard onClose={() => {
+          setShowAssignmentBoard(false);
+          loadData(); // Refresh data when assignment board is closed
+        }} />
+      )}
+
+      {showTechCapacity && (
+        <TechCapacity onClose={() => setShowTechCapacity(false)} />
       )}
     </div>
   );
