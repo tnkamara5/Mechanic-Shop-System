@@ -12,7 +12,6 @@ interface AssignmentBoardProps {
 }
 
 const AssignmentBoard: React.FC<AssignmentBoardProps> = ({ onClose }) => {
-  const [workOrders, setWorkOrders] = useState<WorkOrderWithDetails[]>([]);
   const [techs, setTechs] = useState<TechProfile[]>([]);
   const [unassignedJobs, setUnassignedJobs] = useState<WorkOrderWithDetails[]>([]);
   const [assignedJobs, setAssignedJobs] = useState<{ [techId: string]: WorkOrderWithDetails[] }>({});
@@ -51,7 +50,6 @@ const AssignmentBoard: React.FC<AssignmentBoardProps> = ({ onClose }) => {
         assigned[tech.id] = ordersWithDetails.filter(order => order.assigned_tech === tech.id);
       });
 
-      setWorkOrders(ordersWithDetails);
       setTechs(techProfiles);
       setUnassignedJobs(unassigned);
       setAssignedJobs(assigned);

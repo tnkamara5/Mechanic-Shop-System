@@ -558,8 +558,8 @@ class BrowserDatabaseService {
       // Match specialties to job requirements
       if (tech.specialties && tech.specialties.length > 0) {
         const concern = workOrder.customer_concern?.toLowerCase() || '';
-        const services = workOrder.description?.toLowerCase() || '';
-        const jobText = `${concern} ${services}`.toLowerCase();
+        const diagnosis = workOrder.diagnosis?.toLowerCase() || '';
+        const jobText = `${concern} ${diagnosis}`.toLowerCase();
 
         let specialtyMatch = false;
         tech.specialties.forEach(specialty => {
@@ -591,7 +591,7 @@ class BrowserDatabaseService {
       // Vehicle age consideration
       if (workOrder.vehicle_id) {
         const vehicle = data.vehicles.find(v => v.id === workOrder.vehicle_id);
-        if (vehicle && vehicle.year < 2010) {
+        if (vehicle && vehicle.year && vehicle.year < 2010) {
           // Prefer experienced techs for older vehicles
           if (tech.hourly_rate && tech.hourly_rate >= 30) score += 10;
         }

@@ -42,15 +42,13 @@ const TechCapacity: React.FC<TechCapacityProps> = ({ onClose }) => {
 
         // Calculate weekly hours based on timeframe
         let weeklyHours = 0;
-        const now = new Date();
-        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
 
         if (selectedTimeframe === 'week') {
-          weeklyHours = workload.estimatedHours;
+          weeklyHours = workload.totalEstimatedHours;
         } else if (selectedTimeframe === 'today') {
-          weeklyHours = workload.estimatedHours / 5; // Daily estimate
+          weeklyHours = workload.totalEstimatedHours / 5; // Daily estimate
         } else {
-          weeklyHours = workload.estimatedHours * 4; // Monthly estimate
+          weeklyHours = workload.totalEstimatedHours * 4; // Monthly estimate
         }
 
         const efficiency = tech.hourly_rate ? Math.min(100, (weeklyHours / 40) * 100) : 0;
@@ -58,7 +56,7 @@ const TechCapacity: React.FC<TechCapacityProps> = ({ onClose }) => {
         return {
           tech,
           activeJobs: workload.activeJobs,
-          totalHours: workload.estimatedHours,
+          totalHours: workload.totalEstimatedHours,
           weeklyHours,
           efficiency,
           avgJobTime,
