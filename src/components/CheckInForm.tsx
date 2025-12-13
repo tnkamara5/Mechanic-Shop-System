@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import vinDecoderService from '../services/vinDecoder';
 import { cleanMileage, cleanPhoneNumber, formatPhoneNumber, cleanYear } from '../utils/inputCleaning';
-import type { CustomerCheckInForm } from '../types/models';
+import AppointmentScheduler from './AppointmentScheduler';
+import type { CustomerCheckInForm, TimeSlot } from '../types/models';
 
 interface CheckInFormProps {
   onSubmit: (data: CustomerCheckInForm) => void;
@@ -33,6 +34,12 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
 
   const [isDecodingVin, setIsDecodingVin] = useState(false);
   const [vinError, setVinError] = useState('');
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<{
+    service: any;
+    date: Date;
+    timeSlot: TimeSlot;
+  } | null>(null);
 
   // Display values for formatted inputs
   const [displayValues, setDisplayValues] = useState({
@@ -120,8 +127,52 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAppointmentSelect = (appointment: {
+    service: any;
+    date: Date;
+    timeSlot: TimeSlot;
+  }) => {
+    setSelectedAppointment(appointment);
+    setShowScheduler(false);
+
+    // Update form data with appointment info
+    setFormData(prev => ({
+      ...prev,
+      service: {
+        ...prev.service,
+        appointment_date: appointment.timeSlot.start.toISOString().slice(0, 16),
+        customer_concern: prev.service.customer_concern || `${appointment.service.serviceName} service requested`,
+      },
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // If appointment was scheduled, create it in the scheduling system
+    if (selectedAppointment) {
+      try {
+        const appointment = {
+          customer_id: 'temp', // Will be updated after customer is created
+          service_type: selectedAppointment.service.serviceId,
+          service_category: selectedAppointment.service.category,
+          scheduled_start: selectedAppointment.timeSlot.start.getTime(),
+          scheduled_end: selectedAppointment.timeSlot.end.getTime(),
+          duration_minutes: selectedAppointment.service.estimatedDuration,
+          status: 'scheduled' as const,
+          priority: 'normal' as const,
+          estimated_price: selectedAppointment.service.estimatedPrice,
+          customer_notes: formData.service.customer_concern,
+          created_by: 'customer',
+        };
+
+        // Store appointment data for later processing
+        sessionStorage.setItem('pendingAppointment', JSON.stringify(appointment));
+      } catch (error) {
+        console.error('Failed to prepare appointment:', error);
+      }
+    }
+
     onSubmit(formData);
   };
 
@@ -340,17 +391,124 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
                 />
               </div>
 
+              {/* Appointment Scheduling */}
               <div>
-                <label htmlFor="appointment_date" className="block text-sm font-medium text-shop-700 mb-2">
-                  Appointment Date/Time (if scheduled)
+                <label className="block text-sm font-medium text-shop-700 mb-2">
+                  Appointment Scheduling
                 </label>
-                <input
-                  type="datetime-local"
-                  id="appointment_date"
-                  className="input"
-                  value={formData.service.appointment_date}
-                  onChange={(e) => handleInputChange('service', 'appointment_date', e.target.value)}
-                />
+
+                {!selectedAppointment ? (
+                  <div className="space-y-3">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-medium text-blue-900">Schedule an Appointment</h4>
+                          <p className="text-sm text-blue-700">
+                            Book your service time in advance and skip the wait!
+                          </p>
+                        </div>
+                        <div className="text-2xl">📅</div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowScheduler(true)}
+                          className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        >
+                          📅 Schedule Appointment
+                        </button>
+                        <div className="text-center text-sm text-blue-600 py-2">
+                          or continue for walk-in service
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Manual Date Input (Fallback) */}
+                    <details className="group">
+                      <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">
+                        Already have an appointment? Enter details manually
+                      </summary>
+                      <div className="mt-2">
+                        <input
+                          type="datetime-local"
+                          id="appointment_date"
+                          className="input"
+                          value={formData.service.appointment_date}
+                          onChange={(e) => handleInputChange('service', 'appointment_date', e.target.value)}
+                          placeholder="Select appointment date and time"
+                        />
+                      </div>
+                    </details>
+                  </div>
+                ) : (
+                  /* Selected Appointment Display */
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-green-600">✅</span>
+                          <h4 className="font-medium text-green-900">
+                            Appointment Scheduled
+                          </h4>
+                        </div>
+
+                        <div className="space-y-1 text-sm">
+                          <div className="text-green-800">
+                            <strong>{selectedAppointment.service.serviceName}</strong>
+                          </div>
+                          <div className="text-green-700">
+                            {selectedAppointment.date.toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </div>
+                          <div className="text-green-700">
+                            {selectedAppointment.timeSlot.start.toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
+                            })} - {selectedAppointment.timeSlot.end.toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
+                            })}
+                          </div>
+                          <div className="text-green-600">
+                            Duration: ~{selectedAppointment.service.estimatedDuration} minutes
+                          </div>
+                          {selectedAppointment.service.estimatedPrice && (
+                            <div className="text-green-700">
+                              Estimated price: ${selectedAppointment.service.estimatedPrice.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAppointment(null);
+                          setFormData(prev => ({
+                            ...prev,
+                            service: {
+                              ...prev.service,
+                              appointment_date: '',
+                            },
+                          }));
+                        }}
+                        className="text-green-600 hover:text-green-800 p-1"
+                        title="Remove appointment"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -376,6 +534,36 @@ const CheckInForm: React.FC<CheckInFormProps> = ({ onSubmit, isLoading = false }
           Your information is secure and will only be used for this service appointment.
         </p>
       </div>
+
+      {/* Appointment Scheduler Modal */}
+      {showScheduler && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Schedule Your Appointment
+                </h2>
+                <button
+                  onClick={() => setShowScheduler(false)}
+                  className="text-gray-400 hover:text-gray-600 p-2"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4">
+              <AppointmentScheduler
+                vehicleYear={formData.vehicle.year}
+                onAppointmentSelect={handleAppointmentSelect}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

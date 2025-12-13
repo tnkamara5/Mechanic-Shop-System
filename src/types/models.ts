@@ -257,3 +257,131 @@ export interface TimeEntry {
   created_at: number;
   updated_at: number;
 }
+
+// Enhanced Scheduling Models
+export interface Appointment {
+  id: string;
+  customer_id: string;
+  vehicle_id?: string;
+  service_type: string;
+  service_category: string;
+  scheduled_start: number;
+  scheduled_end: number;
+  duration_minutes: number;
+  assigned_tech?: string;
+  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+  priority: 'normal' | 'urgent' | 'rush';
+  estimated_price?: number;
+  customer_notes?: string;
+  internal_notes?: string;
+  created_at: number;
+  updated_at: number;
+  created_by: string; // customer or staff member
+}
+
+export interface ShopSchedule {
+  id: string;
+  day_of_week: number; // 0=Sunday, 6=Saturday
+  open_time: string; // "08:00"
+  close_time: string; // "17:00"
+  lunch_start?: string; // "12:00"
+  lunch_end?: string; // "13:00"
+  is_closed: boolean;
+  max_appointments_per_hour?: number;
+  notes?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ServiceDuration {
+  id: string;
+  service_id: string;
+  service_name: string;
+  category: string;
+  estimated_minutes: number;
+  minimum_minutes: number;
+  maximum_minutes: number;
+  buffer_minutes: number; // cleanup time after job
+  complexity_multiplier: number; // 1.0 = normal, 1.5 = complex vehicles
+  requires_specialist: boolean;
+  can_overlap: boolean; // can be done while other work happens
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TechSchedule {
+  id: string;
+  tech_id: string;
+  date: number; // timestamp for the day
+  shift_start: string; // "08:00"
+  shift_end: string; // "17:00"
+  lunch_start?: string;
+  lunch_end?: string;
+  available: boolean;
+  max_concurrent_jobs: number;
+  specializations: string[]; // brake, engine, electrical, etc.
+  notes?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TimeOffRequest {
+  id: string;
+  tech_id: string;
+  request_type: 'vacation' | 'sick' | 'personal' | 'appointment' | 'training';
+  start_date: number;
+  end_date: number;
+  start_time?: string; // for partial day requests
+  end_time?: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'denied' | 'cancelled';
+  requested_at: number;
+  reviewed_at?: number;
+  reviewed_by?: string;
+  reviewer_notes?: string;
+  impact_assessment?: string; // auto-generated conflict warnings
+}
+
+export interface BusinessRules {
+  id: string;
+  rule_name: string;
+  rule_type: 'scheduling' | 'pricing' | 'capacity' | 'workflow';
+  configuration: Record<string, any>; // flexible rule configuration
+  is_active: boolean;
+  priority: number; // for rule conflict resolution
+  created_at: number;
+  updated_at: number;
+}
+
+export interface TimeSlot {
+  start: Date;
+  end: Date;
+  available: boolean;
+  reason?: string; // "booked", "lunch", "closed", "tech_unavailable"
+  conflicting_appointment_id?: string;
+  available_techs: string[];
+  suggested_price?: number;
+}
+
+export interface AppointmentConflict {
+  type: 'double_booking' | 'no_tech_available' | 'outside_hours' | 'insufficient_time';
+  message: string;
+  conflicting_appointment_id?: string;
+  suggested_alternatives?: TimeSlot[];
+}
+
+export interface SchedulingPreferences {
+  id: string;
+  customer_id?: string;
+  preferred_tech?: string;
+  preferred_times: string[]; // ["morning", "afternoon", "evening"]
+  preferred_days: number[]; // [1, 2, 3] for Mon, Tue, Wed
+  avoid_rush_jobs: boolean;
+  notification_preferences: {
+    email: boolean;
+    sms: boolean;
+    reminder_hours: number; // hours before appointment
+  };
+  created_at: number;
+  updated_at: number;
+}
