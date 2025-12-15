@@ -31,7 +31,9 @@ class BrowserDatabaseService {
   private getStorageData(): StorageData {
     const saved = localStorage.getItem(this.storageKey);
     if (saved) {
-      return JSON.parse(saved);
+      const data = JSON.parse(saved);
+      // Migrate data structure if missing new fields
+      return this.migrateStorageData(data);
     }
 
     // Initialize with default data
@@ -133,6 +135,89 @@ class BrowserDatabaseService {
 
     this.saveStorageData(initialData);
     return initialData;
+  }
+
+  private migrateStorageData(data: any): StorageData {
+    // Ensure all required fields exist with defaults
+    const migratedData: StorageData = {
+      customers: data.customers || [],
+      vehicles: data.vehicles || [],
+      work_orders: data.work_orders || [],
+      line_items: data.line_items || [],
+      check_ins: data.check_ins || [],
+      tech_profiles: data.tech_profiles || [
+        {
+          id: 'tech-001',
+          name: 'Mike Johnson',
+          employee_id: 'EMP001',
+          certifications: ['ASE A1', 'ASE A5', 'ASE A8'],
+          specialties: ['brake', 'suspension', 'general'],
+          hourly_rate: 45.00,
+          active: true,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+        {
+          id: 'tech-002',
+          name: 'Sarah Chen',
+          employee_id: 'EMP002',
+          certifications: ['ASE A6', 'ASE A7', 'ASE L1'],
+          specialties: ['electrical', 'engine', 'diagnostic'],
+          hourly_rate: 50.00,
+          active: true,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+        {
+          id: 'tech-003',
+          name: 'Carlos Rodriguez',
+          employee_id: 'EMP003',
+          certifications: ['ASE A2', 'ASE A3'],
+          specialties: ['transmission', 'engine', 'general'],
+          hourly_rate: 42.00,
+          active: true,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+      ],
+      time_entries: data.time_entries || [],
+      common_services: data.common_services || [
+        {
+          id: 'service-001',
+          name: 'Oil Change',
+          description: 'Standard oil and filter change',
+          category: 'maintenance',
+          base_price: 45.99,
+          labor_hours: 0.5,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+        {
+          id: 'service-002',
+          name: 'Brake Inspection',
+          description: 'Visual inspection of brake system',
+          category: 'brake',
+          base_price: 29.99,
+          labor_hours: 0.25,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+        {
+          id: 'service-003',
+          name: 'Battery Test',
+          description: 'Battery and charging system test',
+          category: 'electrical',
+          base_price: 19.99,
+          labor_hours: 0.25,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        },
+      ],
+    };
+
+    // Save migrated data back to storage
+    this.saveStorageData(migratedData);
+    return migratedData;
   }
 
   private saveStorageData(data: StorageData): void {

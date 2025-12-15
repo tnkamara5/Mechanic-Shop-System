@@ -16,37 +16,50 @@ const OwnerDashboard: React.FC = () => {
   const [showTechRoster, setShowTechRoster] = useState(false);
   const [showAssignmentBoard, setShowAssignmentBoard] = useState(false);
   const [showTechCapacity, setShowTechCapacity] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = () => {
-    const checkIns = BrowserDatabaseService.getPendingCheckIns();
-    const orders = BrowserDatabaseService.getWorkOrders();
-    const techProfiles = BrowserDatabaseService.getAllTechProfiles();
+    try {
+      const checkIns = BrowserDatabaseService.getPendingCheckIns();
+      const orders = BrowserDatabaseService.getWorkOrders();
+      const techProfiles = BrowserDatabaseService.getAllTechProfiles();
 
-    setPendingCheckIns(checkIns);
-    setWorkOrders(orders);
-    setTechs(techProfiles);
+      setPendingCheckIns(checkIns);
+      setWorkOrders(orders);
+      setTechs(techProfiles);
 
-    // Load customer and vehicle data
-    const customerMap: { [id: string]: Customer } = {};
-    const vehicleMap: { [id: string]: Vehicle } = {};
+      // Load customer and vehicle data
+      const customerMap: { [id: string]: Customer } = {};
+      const vehicleMap: { [id: string]: Vehicle } = {};
 
-    [...checkIns, ...orders].forEach(item => {
-      if (item.customer_id && !customerMap[item.customer_id]) {
-        const customer = BrowserDatabaseService.getCustomer(item.customer_id);
-        if (customer) customerMap[item.customer_id] = customer;
-      }
-      if (item.vehicle_id && !vehicleMap[item.vehicle_id]) {
-        const vehicle = BrowserDatabaseService.getVehicle(item.vehicle_id);
-        if (vehicle) vehicleMap[item.vehicle_id] = vehicle;
-      }
-    });
+      [...checkIns, ...orders].forEach(item => {
+        if (item.customer_id && !customerMap[item.customer_id]) {
+          const customer = BrowserDatabaseService.getCustomer(item.customer_id);
+          if (customer) customerMap[item.customer_id] = customer;
+        }
+        if (item.vehicle_id && !vehicleMap[item.vehicle_id]) {
+          const vehicle = BrowserDatabaseService.getVehicle(item.vehicle_id);
+          if (vehicle) vehicleMap[item.vehicle_id] = vehicle;
+        }
+      });
 
-    setCustomers(customerMap);
-    setVehicles(vehicleMap);
+      setCustomers(customerMap);
+      setVehicles(vehicleMap);
+    } catch (error) {
+      console.error('Failed to load owner dashboard data:', error);
+      // Set default empty states so the component still renders
+      setPendingCheckIns([]);
+      setWorkOrders([]);
+      setTechs([]);
+      setCustomers({});
+      setVehicles({});
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const createWorkOrderFromCheckIn = (checkInId: string) => {
@@ -68,6 +81,19 @@ const OwnerDashboard: React.FC = () => {
     const parts = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean);
     return parts.join(' ') || 'Unknown Vehicle';
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-shop-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg p-8 shadow">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading owner dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-shop-50">
